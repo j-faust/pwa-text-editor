@@ -4,7 +4,7 @@ const { registerRoute } = require('workbox-routing');
 const { CacheableResponsePlugin } = require('workbox-cacheable-response');
 const { ExpirationPlugin } = require('workbox-expiration');
 const { precacheAndRoute } = require('workbox-precaching/precacheAndRoute');
-
+const { staleWithRevalidate } = require('workbox-strategies');
 precacheAndRoute(self.__WB_MANIFEST);
 
 const pageCache = new CacheFirst({
@@ -24,7 +24,22 @@ warmStrategyCache({
   strategy: pageCache,
 });
 
-registerRoute(({ request }) => request.mode === 'navigate', pageCache);
+registerRoute(
+  ({ request }) => request.mode === 'navigate', pageCache)
 
-// TODO: Implement asset caching
+// Implementing asset caching
+registerRoute(
+  // callback function that will filter requests for the JS and CSS files to be cached
+  ({ request }) => ['style', 'script', 'worker'].includes(request.destination),
+  new staleWithRevalidate({
+    // cache storage name
+    cacheName: 'asset-cache',
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [0, 200],
+      }),
+    ],
+  })
+);
+
 registerRoute();
